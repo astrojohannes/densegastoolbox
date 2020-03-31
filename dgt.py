@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 
 ######################################################################################
 # This takes observed intensities I of multiple lines from a table, e.g.
@@ -16,7 +16,18 @@ import re
 from mpl_toolkits import mplot3d
 from matplotlib import rc
 from scipy.interpolate import Rbf
+from scipy.stats import chi2 as scipychi2
 from pylab import *
+from read_grid_ndist import read_grid_ndist
+
+import warnings
+
+cmap='cubehelix'
+
+# ignore some warnings
+warnings.filterwarnings("ignore", message="divide by zero encountered in divide")
+warnings.filterwarnings("ignore", message="divide by zero encountered") 
+warnings.filterwarnings("ignore", message="invalid value encountered")
 
 ##################################################################
 
@@ -45,71 +56,6 @@ def scalar(array):
         return np.asscalar(array)
     else:
         return np.asscalar(array[0])
-
-##################################################################
-
-def read_grid_ndist(obstrans,usertkin,powerlaw):
-    m={}
-    if powerlaw:
-        gridfile='models/lrat_table_powerlaw.txt'
-    else:
-        gridfile='models/lrat_table.txt'
-    Tkin,n_mean,width,pl,pl_densefrac,n_mean_mass,densefrac, \
-            ICO,n_mean_ICO,\
-            I13CO_ICO,n_mean_I13CO,\
-            ICO21_ICO,n_mean_ICO21,\
-            ICO32_ICO,n_mean_ICO32,\
-            IHCOP_ICO,n_mean_IHCOP,\
-            IHNC_ICO,n_mean_IHNC,\
-            IHCN_ICO,n_mean_IHCN,\
-            = np.loadtxt(gridfile, skiprows=21,unpack=True)
-   
-    # constrain models when user specifies temperature 
-    if (usertkin>0):
-        index=np.where(Tkin==usertkin)[0]
-        ICO=ICO[index]
-        n_mean_ICO=n_mean_ICO[index]
-
-        I13CO_ICO=I13CO_ICO[index]
-        n_mean_I13CO=n_mean_I13CO[index]
-
-        ICO21_ICO=ICO21_ICO[index]
-        n_mean_ICO21=n_mean_ICO21[index]
-
-        ICO32_ICO=ICO32_ICO[index]
-        n_mean_ICO32=n_mean_ICO32[index]
-
-        IHCOP_ICO=IHCOP_ICO[index]
-        n_mean_IHCOP=n_mean_IHCOP[index]
-
-        IHCN_ICO=IHCN_ICO[index]
-        n_mean_IHCN=n_mean_IHCN[index]
-
-        IHNC_ICO=IHNC_ICO[index]
-        n_mean_IHNC=n_mean_IHNC[index]
-
-        Tkin=Tkin[index]
-        n_mean=n_mean[index]
-        width=width[index]
-        densefrac=densefrac[index]
-        n_mean_mass=n_mean_mass[index]
-
-    # match variables from above to dict keys --> should be improved later
-    # i.e. populate model dictionary
-    m['CO10']=ICO
-    m['CO21']=ICO21_ICO*ICO
-    m['CO32']=ICO32_ICO*ICO
-    m['13CO10']=I13CO_ICO*ICO
-    m['HCN10']=IHCN_ICO*ICO
-    m['HCOP10']=IHCOP_ICO*ICO
-    m['HNC10']=IHNC_ICO*ICO
-
-    m['T']=Tkin
-    m['n']=n_mean_mass
-    m['width']=width
-    m['densefrac']=densefrac
-    
-    return m
 
 ##################################################################
 
@@ -157,25 +103,83 @@ def write_result(result,outfile):
     return 
 
 ##################################################################
+
+def makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile):
+        fig = plt.figure(figsize=(7.5,6))
+        ax = plt.gca()
+        sliceindexes=np.where(this_slice==this_bestval)
+        slicex=x[sliceindexes]
+        slicey=y[sliceindexes]
+        slicez=z[sliceindexes]
+        slicex=np.array(slicex)
+        slicey=np.array(slicey)
+        slicez=np.array(slicez)
+
+        if len(slicez)>3:
+            # Set up a regular grid of interpolation points
+            xi, yi = np.linspace(slicex.min(), slicex.max(), 60), np.linspace(slicey.min(), slicey.max(), 60)
+            xi, yi = np.meshgrid(xi, yi)
+            # Interpolate using Rbf
+            rbf = Rbf(slicex, slicey, slicez, function='cubic')
+            zi = rbf(xi, yi)
+
+            q=[0.999]
+            vmax=np.quantile(slicez,q)
+            zi[zi>vmax]=vmax
+
+            # replace nan with vmax (using workaround)
+            val=-99999.9
+            zi[zi==0.0]=val
+            zi=np.nan_to_num(zi)
+            zi[zi==0]=vmax
+            zi[zi==val]=0.0
+
+            # plot
+            pl2=plt.imshow(zi, vmin=slicez.min(), vmax=slicez.max(), origin='lower', extent=[slicex.min(), slicex.max(), slicey.min(), slicey.max()],aspect='auto',cmap=cmap)
+            ax.set_xlabel(xlabel, fontsize=18)
+            ax.set_ylabel(ylabel, fontsize=18)
+            clb=fig.colorbar(pl2)
+            clb.set_label(label=zlabel,size=16)
+            clb.ax.tick_params(labelsize=18)
+        #####################################
+
+        fig.subplots_adjust(left=0.13, bottom=0.12, right=0.93, top=0.94, wspace=0, hspace=0)
+        fig = gcf()
+
+        fig.suptitle(title, fontsize=18, y=0.99)
+
+        ax.tick_params(axis='both', which='major', labelsize=16)
+        ax.tick_params(axis='both', which='minor', labelsize=16)
+
+        fig.savefig(pngoutfile,fig_layout='tight')
+        plt.close()
+
+
+
+
+##################################################################
 ##################################################################
 ##################################################################
 ################# The Dense Gas Toolbox ##########################
 ##################################################################
 ##################################################################
 
-def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
+def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
+
+    # check user inputs (T and width)
+    valid_T=[0,10,15,20,25,30,35,40,45,50]
+    valid_W=[0,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+
+    if userT in valid_T and userWidth in valid_W:
+        userinputOK=True
+    else:
+        userinputOK=False
+        print "!!! User input (temperature or width) invalid. Exiting."
+        print "!!!"
+        exit()
 
     # Valid (i.e. modeled) input molecular lines are:
 
-    ########### MORE LINES WILL BE ADDED SOON ##########
-    valid_lines=['CO10','CO21','CO32',\
-        'HCN10',\
-        'HCOP10',\
-        'HNC10',\
-        '13CO10'\
-    ]
-
-    """
     valid_lines=['CO10','CO21','CO32',\
         'HCN10','HCN21','HCN32',\
         'HCOP10','HCOP21','HCOP32',\
@@ -184,7 +188,6 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
         'C18O10','C18O21','C18O32',\
         'C17O10','C17O21','C17O32'\
     ]
-    """
 
     ###########################
     ### get observations ######
@@ -213,7 +216,8 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
             obstrans.append(key)
 
     # Only continue if number of molecular lines is > number of free parameters:
-    if userT>0: dgf=ct_l-2      # degrees of freedom = nrlines-2 if temperature is fixed. Free parameters: n,width
+    if userT>0 and userWidth>0: dgf=ct_l-1
+    elif userT>0 or userT>0: dgf=ct_l-2      # degrees of freedom = nrlines-2 if temperature is fixed. Free parameters: n,width
     else: dgf=ct_l-3        # Free parameters: n,T,width
 
     if not dgf>0:
@@ -253,7 +257,7 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
     ##### get the models ######
     ###########################
     mdl={}
-    mdl = read_grid_ndist(obstrans,userT,powerlaw)
+    mdl = read_grid_ndist(obstrans,userT,userWidth,powerlaw)
 
 
 
@@ -321,9 +325,6 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
         chi2=ma.masked_invalid(chi2)
         mchi2invalid=ma.getmask(chi2)
 
-        # filter out outliers
-        chi2lowlim,chi2uplim=np.quantile(chi2,[0.0,0.9])
-
         # based on chi2
         chi2=ma.array(chi2)
         chi2=ma.masked_outside(chi2, chi2lowlim, chi2uplim)
@@ -356,32 +357,13 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
         ################### from chi2 credible interval ###########
         ###########################################################
 
-        # These limits correspond to 1sigma error
-        if dgf==1:
-                deltachi2=3.841
-        elif dgf==2:
-                deltachi2=5.991
-        elif dgf==3:
-               deltachi2=7.815
-        elif dgf==4:
-                deltachi2=9.488
-        elif dgf==5:
-                deltachi2=11.071
-        elif dgf==6:
-                deltachi2=12.592
-        elif dgf==7:
-                deltachi2=14.067
-        elif dgf==8:
-                deltachi2=15.507
-        elif dgf==9:
-                deltachi2=16.919
-        elif dgf==10:
-                deltachi2=18.307
+        # These limits correspond to +/-1 sigma error
+        if dgf>0:
+            #cutoff=0.05  # area to the right of critical value; here 5% --> 95% confidence  --> +/- 2sigma
+            cutoff=0.32  # area to the right of critical value; here 32% --> 68% confidence --> +/- 1sigma
+            deltachi2=scipychi2.ppf(1-cutoff, dgf)
         else:
-                print "Wow, you have so many lines! Delta-Chi2 not implemented. Just using some high value."
-                deltachi2=25.
-
-        deltachi2=2.3   # a contour of chi2 < chi2+2.3 gives the joint 68% confidence region 
+            print "DGF is zero or negative."
 
 
         # The minimum
@@ -398,7 +380,7 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
 
         # the credible interval --> use for error estimate
         # not yet implemented though --> will be done in later version
-        index_credible_int=ma.where(chi2<1e9)
+        index_credible_int=ma.where(chi2<chi2+deltachi2)
 
         if len(index_credible_int[0])>3:
 
@@ -429,7 +411,7 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
         ########## Plot result on screen ###########
         ############################################
 
-        if SNR>snr_lim:
+        if SNR>snr_lim and bestn>0:
             print "\n#### Bestfit Parameters for pixel nr. "+str(p+1)+" ("+str(round(ra[p],5))+","+str(round(de[p],5))+ ") ####"
             print "chi2\t\t" + str(bestchi2)
             print "reduced chi2\t\t" + str(bestreducedchi2)
@@ -448,12 +430,16 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
         ############################################
 
         # Plotting
-        if SNR>snr_lim and plotting==True:
+        if SNR>snr_lim and plotting==True and bestn>0:
 
             #### Create directory for output png files ###
             if not os.path.exists('./results/'):
                 os.makedirs('./results/')
 
+            # zoom-in variables
+            zoom_n=n[chi2<bestchi2+deltachi2].compressed()
+            zoom_chi2=chi2[chi2<bestchi2+deltachi2].compressed()
+            zoom_width=width[chi2<bestchi2+deltachi2].compressed()
 
 
             ########################## PLOT 1 #############################
@@ -465,9 +451,6 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
             ax[0,0].scatter(chi2, np.log10(n),c=width, cmap='Accent',marker=',',s=4,vmin=width.min(),vmax=width.max())
             ax[0,0].set_ylabel('$log\ n$') 
 
-            zoom_n=n[chi2<bestchi2+deltachi2].compressed()
-            zoom_chi2=chi2[chi2<bestchi2+deltachi2].compressed()
-            zoom_width=width[chi2<bestchi2+deltachi2].compressed()
             pl1=ax[0,1].scatter(zoom_chi2, np.log10(zoom_n),c=zoom_width, cmap='Accent',marker=',',s=9,vmin=width.min(),vmax=width.max())
             fig.colorbar(pl1,ax=ax[0,1],label='$\mathsf{width}$')
 
@@ -492,68 +475,72 @@ def dgt(obsdata_file,powerlaw,userT,snr_line,snr_lim,plotting):
             plt.close()
 
 
-            if userT==0:
-                  ########################## PLOT 2 #############################
-      
-                  # 3 plots in one
-                  fig = plt.figure(figsize=(17,6))
-      
-                  # 3d plot
-                  ax = fig.add_subplot(131,projection='3d')
-      
-                  o=ax.scatter3D(np.log10(n), np.log10(T), width, c=chi2, cmap='viridis',marker=',',s=4)
-                   # viewing angle
-                  ax.azim=40
-                  ax.elev=25
-                  # Axis Label
-                  ax.set_xlabel('$log\ n\ [cm^-3]$')
-                  ax.set_ylabel('$log\ T\ [K]$')
-                  ax.set_zlabel('$width\ [dex]$')
-                  # colorbar
-                  fig.colorbar(o,ax=ax,label='$\mathsf{\chi^2}$')
-      
-                  # n,T for zoom-in region with width as 3rd axis
-                  ax = fig.add_subplot(132)
-                  pl1=ax.scatter(np.log10(zoom_n),np.log10(zoom_T), c=zoom_width, cmap='Accent',marker=',',s=9)
-                  ax.set_xlabel('$log\ n\ [cm^-3]$')
-                  ax.set_ylabel('$log\ T\ [K]$') 
-                  fig.colorbar(pl1,ax=ax,label='$\mathsf{width}$') 
-      
-                  ##### interpolated (n,T) vs. chi2
-                  ax = fig.add_subplot(133)
-                  slicex=zoom_n
-                  slicey=zoom_T
-                  slicez=zoom_chi2
-      
-                  slicex=np.log10(slicex)
-                  slicey=np.log10(slicey)
-                  #slicez=np.log10(slicez)
-      
-                  if len(slicez)>3:
-                      # Set up a regular grid of interpolation points
-                      xi, yi = np.linspace(slicex.min(), slicex.max(), 50), np.linspace(slicey.min(), slicey.max(), 50)
-                      xi, yi = np.meshgrid(xi, yi)
-                      # Interpolate
-                      rbf = Rbf(slicex, slicey, slicez, function='linear')
-                      zi = rbf(xi, yi)
-                      pl2=plt.imshow(zi, vmin=slicez.min(), vmax=slicez.max(), origin='lower', extent=[slicex.min(), slicex.max(), slicey.min(), slicey.max()],aspect='auto')
-                      #ax.scatter(slicex, slicey, marker=',',color='w',s=6,alpha=0.5)
-                      ax.set_xlabel('$log\ n\ [cm^-3]$')
-                      ax.set_ylabel('$log\ T\ [K]$') 
-                      fig.colorbar(pl2,label='$\mathsf{\chi^2}$')
-                  #####################################
-      
-                  fig.subplots_adjust(left=0.01, bottom=0.08, right=0.98, top=0.94, wspace=0.14, hspace=0.0) 
-                  fig = gcf()
-      
-                  tit='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
-                  fig.suptitle(tit, fontsize=14, y=0.99)
-                  nT_filename=obsdata_file[:-4]+"_"+str(p+1)+'_nT.png'
-                  fig.savefig('./results/'+nT_filename)
-                  #plt.show()
-                  plt.close()
-      
-                  del fig,ax,zoom_n,zoom_T,zoom_width,zoom_chi2
+            ########################## PLOT 2 #############################
+            # all parameters free: (n,T) vs. chi2
+            if userT==0 and userWidth==0:
+
+                  x=np.log10(zoom_n)
+                  y=np.log10(zoom_T)
+                  z=np.log10(zoom_chi2)
+                  this_slice=zoom_width
+                  this_bestval=bestwidth
+                  xlabel='$log\ n\ [cm^{-3}]$'
+                  ylabel='$log\ T\ [K]$'
+                  zlabel='$\mathsf{log\ \chi^2}$'
+
+                  title='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
+                  pngoutfile='results/'+obsdata_file[:-4]+"_"+str(p+1)+'_nT.png'
+
+                  makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile)
+
+                  ########################## PLOT 3 #############################
+                  # all parameters free: (n,width) vs. chi2
+                  x=np.log10(zoom_n)
+                  y=zoom_width
+                  z=np.log10(zoom_chi2)
+                  this_slice=zoom_T
+                  this_bestval=bestT
+                  xlabel='$log\ n\ [cm^{-3}]$'
+                  ylabel='$width\ [dex]$'
+                  zlabel='$\mathsf{log\ \chi^2}$'
+
+                  title='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
+                  pngoutfile='results/'+obsdata_file[:-4]+"_"+str(p+1)+'_nW.png'
+
+                  makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile)
+ 
+            # width fixed: (n,T) vs. chi2
+            elif userT==0 and userWidth>0:
+                  x=np.log10(zoom_n)
+                  y=np.log10(zoom_T)
+                  z=np.log10(zoom_chi2)
+                  this_slice=zoom_width
+                  this_bestval=bestwidth
+                  xlabel='$log\ n\ [cm^{-3}]$'
+                  ylabel='$log\ T\ [K]$'
+                  zlabel='$\mathsf{log\ \chi^2}$'
+
+                  title='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
+                  pngoutfile='results/'+obsdata_file[:-4]+"_"+str(p+1)+'_nT_fixedW.png'
+
+                  makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile)
+
+            # T fixed: (n,width) vs. chi2
+            elif userT>0 and userWidth==0:
+                  x=np.log10(zoom_n)
+                  y=zoom_width
+                  z=np.log10(zoom_chi2)
+                  this_slice=zoom_T
+                  this_bestval=bestT
+                  xlabel='$log\ n\ [cm^{-3}]$'
+                  ylabel='$width\ [dex]$'
+                  zlabel='$\mathsf{log\ \chi^2}$'
+
+                  title='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
+                  pngoutfile='results/'+obsdata_file[:-4]+"_"+str(p+1)+'_nW_fixedT.png'
+
+                  makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile)
+
 
         del diff,chi2,n,T,width,densefrac,mchi2,mchi2invalid,mwidth,m1,m,grid_n,grid_T
 
