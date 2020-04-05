@@ -13,14 +13,16 @@ import numpy.ma as ma
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import re
-from mpl_toolkits import mplot3d
 from matplotlib import rc
-from scipy.interpolate import Rbf
+#from scipy.interpolate import Rbf, LinearNDInterpolator
 from scipy.stats import chi2 as scipychi2
 from pylab import *
 from read_grid_ndist import read_grid_ndist
-
+import emcee
+from multiprocessing import Pool
+from datetime import datetime
 import warnings
+from mcmc_corner_plot import mcmc_corner_plot
 
 cmap='cubehelix'
 
@@ -28,6 +30,8 @@ cmap='cubehelix'
 warnings.filterwarnings("ignore", message="divide by zero encountered in divide")
 warnings.filterwarnings("ignore", message="divide by zero encountered") 
 warnings.filterwarnings("ignore", message="invalid value encountered")
+warnings.filterwarnings("ignore", message="overflow encountered in power")
+
 
 ##################################################################
 
@@ -48,6 +52,116 @@ mpl.rcParams['xtick.top'] = True
 mpl.rcParams['ytick.right'] = True
 
 ##################################################################
+
+def mymcmc(grid_theta, grid_loglike, ndim, nwalkers, backend, interp):
+
+    ##### Define parameter grid for random selection of initial points for walker #######
+    ##### PARAMETER GRID #####
+    grid_n=10.**(1.8+np.arange(33)*0.1)
+    grid_T=[10,15,20,25,30,35,40,45,50]
+    grid_width=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+
+    pos = [np.array([ \
+           np.random.choice(grid_n,size=1)[0],\
+           np.random.choice(grid_T,size=1)[0],\
+           np.random.choice(grid_width,size=1)[0]]\
+           ,dtype=np.float64) for i in range(nwalkers)]
+
+    # theta=[n,T,width]
+
+    with Pool() as pool:
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, getloglike, args=([grid_theta, grid_loglike, interp]), pool=pool, backend=backend)
+        sampler.run_mcmc(pos, 600, progress=True, store=True)
+
+############################################################
+
+def getloglike_nearest(theta, grid_theta, grid_loglike):
+
+    intheta=np.array(theta,dtype=np.float64)
+
+    diff=np.ones_like(grid_loglike)*1e10
+    isclose=np.zeros_like(grid_loglike,dtype=np.bool)
+
+    for i in range(len(grid_theta.T)):
+        # calculate element-wise quadratic difference and sum it up
+        # to get index of nearest neighbour on grid     
+        diff[i]=((intheta-grid_theta.T[i])**2.0).sum()
+        isclose[i]=np.allclose(intheta,grid_theta.T[i],rtol=0.50)
+
+    # find index of nearest neighbour
+    ind=np.array(diff,dtype=np.float64).argmin()
+
+    """
+    # sanity check: compare the found neighbor to the input parameters
+    print(intheta,grid_theta.T[ind],grid_loglike[ind])
+    """
+
+    # check if the nearest neighbour is within 50% tolerance
+    if not isclose[ind]:
+        return -np.inf
+
+    # check if the result is unambiguous (i.e. more than one minimum)
+    if isinstance(ind,(list,np.ndarray)):
+        print("WARNING Unambiguous grid point.")
+        print(intheta)
+        return -np.inf
+
+    if not np.isfinite(grid_loglike[ind]):
+        return -np.inf
+
+    return grid_loglike[ind]
+
+#####################################################################
+
+def getloglike(theta, grid_theta, grid_loglike, interp):
+
+    intheta=np.array(theta,dtype=np.float64)
+
+    ###########################
+    # nearest neighbour loglike
+    if not interp:
+        diff=np.ones_like(grid_loglike)*1e10
+        isclose=np.zeros_like(grid_loglike,dtype=np.bool)
+
+        for i in range(len(grid_theta.T)):
+            # calculate element-wise quadratic difference and sum it up
+            # to get index of nearest neighbour on grid     
+            diff[i]=((intheta-grid_theta.T[i])**2.0).sum()
+            isclose[i]=np.allclose(intheta,grid_theta.T[i],rtol=0.50)
+
+        # find nearest neighbour
+        ind=np.array(diff,dtype=np.float64).argmin()
+        this_loglike=grid_loglike[ind]
+
+        # check if the nearest neighbour is within 50% tolerance
+        if not isclose[ind]:
+            return -np.inf
+
+        if not np.isfinite(this_loglike):
+            return -np.inf
+
+
+    #############################
+    
+    #############################
+    # interpolated loglike
+    else:
+        interpol_func = LinearNDInterpolator(grid_theta.T, grid_loglike, fill_value=-np.inf, rescale=False)
+        this_loglike=interpol_func(intheta)
+
+        if not np.isfinite(this_loglike):
+            return -np.inf
+
+        this_loglike=float(this_loglike)
+
+    #############################
+
+    #print(intheta,grid_loglike[ind],this_loglike)
+
+    return this_loglike
+
+
+#####################################################################
 
 def scalar(array):
     if array.size==0:
@@ -78,7 +192,7 @@ def read_obs(filename):
         lines=alllines[1:]
         for i in range(len(keys)):
             get_col = lambda col: (re.sub('\s+',' ',line).strip().split(' ')[i] for line in lines)
-            val=np.array(map(float,get_col(i)),dtype=np.float64)
+            val=np.array([float(a) for a in get_col(i)],dtype=np.float64)
             obsdata[keys[i]]=val
             keys[i] + ": "+str(val) 
     f.close()
@@ -87,18 +201,31 @@ def read_obs(filename):
 
 ##################################################################
 
-def write_result(result,outfile):
+def write_result(result,outfile,domcmc):
     result=np.array(result)
+
+    tmpoutfile=outfile+'.tmp'
 
     # extract the results
     r=result.transpose()
-    ra,de,chi2,n,T,width,densefrac=r[0],r[1],r[2],r[3],r[4],r[5],r[6]
 
-    # save into new file
-    out=np.column_stack((ra,de,chi2,n,T,width,densefrac))
-    np.savetxt(outfile,out,\
-      fmt="%.8f\t%.8f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f", \
-      header="RA\tDEC\tchi2\tn\tT\twidth\tdensefrac")
+    if not domcmc:
+        ra,de,cnt,dgf,chi2,n,T,width,str_lines=r
+        out=np.column_stack((ra,de,cnt,dgf,chi2,n,T,width,str_lines))
+        np.savetxt(tmpoutfile,out,\
+            fmt="%.8f\t%.8f\t%d\t%d\t%.4f\t%.2f\t%.2f\t%.2f\t%s", \
+            header="RA\tDEC\tcnt\tdgf\tchi2\tn\tT\twidth\tlines_obs")
+    else:
+        ra,de,cnt,dgf,n,n_up,n_lo,T,T_up,T_lo,width,width_up,width_lo,str_lines=r
+        out=np.column_stack((ra,de,cnt,dgf,n,n_up,n_lo,T,T_up,T_lo,width,width_up,width_lo,str_lines))
+        np.savetxt(tmpoutfile,out,\
+            fmt="%.8f\t%.8f\t%d\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%s", \
+            header="RA\tDEC\tcnt\tdgf\tn\te_n1\te_n2\tT\te_T1\te_T2\twidth\te_width1\te_width2\tlines_obs")
+
+    # clean up
+    replacecmd="sed -e\"s/', '/|/g;s/'//g;s/\[//g;s/\]//g\""
+    os.system("cat "+tmpoutfile + "| "+ replacecmd + " > " + outfile)
+    os.system("rm -rf "+tmpoutfile)
 
     return 
 
@@ -154,7 +281,7 @@ def makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile
         fig.savefig(pngoutfile,fig_layout='tight')
         plt.close()
 
-
+        ######################################
 
 
 ##################################################################
@@ -164,7 +291,10 @@ def makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile
 ##################################################################
 ##################################################################
 
-def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
+def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
+
+    interp=False    # interpolate loglike on model grid (for mcmc sampler)
+                    # this is not used yet, because needs some fixing
 
     # check user inputs (T and width)
     valid_T=[0,10,15,20,25,30,35,40,45,50]
@@ -174,8 +304,8 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
         userinputOK=True
     else:
         userinputOK=False
-        print "!!! User input (temperature or width) invalid. Exiting."
-        print "!!!"
+        print("!!! User input (temperature or width) invalid. Exiting.")
+        print("!!!")
         exit()
 
     # Valid (i.e. modeled) input molecular lines are:
@@ -188,6 +318,12 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
         'C18O10','C18O21','C18O32',\
         'C17O10','C17O21','C17O32'\
     ]
+
+    if not snr_line in valid_lines:
+        print("!!! Line for SNR limit is invalid. Must be one of:")
+        print(valid_lines)
+        print("!!!")
+        exit()
 
     ###########################
     ### get observations ######
@@ -202,9 +338,9 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
 
     # check for coordinates in input file
     if not 'RA' in obs.keys() or not 'DEC' in obs.keys():
-        print "!!!"
-        print "!!! No coordinates found in input ascii file. Check column header for 'RA' and 'DEC'. Exiting."
-        print "!!!"
+        print("!!!")
+        print("!!! No coordinates found in input ascii file. Check column header for 'RA' and 'DEC'. Exiting.")
+        print("!!!")
         exit()
         
     # count number of lines in input data
@@ -221,10 +357,10 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
     else: dgf=ct_l-3        # Free parameters: n,T,width
 
     if not dgf>0:
-        print "!!!"
-        print "!!! Number of observed lines too low. Degrees of Freedom <1. Try a fixed temperature or check column header. Valid lines are: "
-        print valid_lines
-        print "!!!"
+        print("!!!")
+        print("!!! Number of observed lines too low. Degrees of Freedom <1. Try a fixed temperature or check column header. Valid lines are: ")
+        print(valid_lines)
+        print("!!!")
         exit()
 
     ra=np.array(obs['RA'])
@@ -248,7 +384,7 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
     elif have_co21: normtrans='CO21'; uc_normtrans='UC_CO21'
     elif have_co32: normtrans='CO32'; uc_normtrans='UC_CO32'
     else:
-        print "No CO line found in input data file. Check column headers for 'CO10', 'CO21' or 'CO32'. Exiting."
+        print("No CO line found in input data file. Check column headers for 'CO10', 'CO21' or 'CO32'. Exiting.")
         exit()
 
 
@@ -272,7 +408,7 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
 
     # loop through observed lines/transitions
     for t in obstrans:
-        if t<>normtrans:
+        if t!=normtrans:
             # calc line ratios
             lr[t]=obs[t]/obs[normtrans]
             mdl[t]=mdl[t]/mdl[normtrans]
@@ -295,7 +431,7 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
         #################################
         diff={}
         for t in obstrans:
-            if t<>normtrans:
+            if t!=normtrans:
                 uc='UC_'+t
                 if obs[t][p]>obs[uc][p] and obs[t][p]>0.0:
                     diff[t]=np.array(((lr[t][p]-mdl[t])/lr[uc][p])**2)
@@ -303,7 +439,7 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
                     diff[t]=np.nan*np.zeros_like(mdl[t])
 
         # vertical stack of diff arrays
-        vstack=np.vstack(diff.values())
+        vstack=np.vstack(list(diff.values()))
         # sum up diff of all line ratios--> chi2
         chi2=vstack.sum(axis=0)
 
@@ -359,12 +495,11 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
 
         # These limits correspond to +/-1 sigma error
         if dgf>0:
-            #cutoff=0.05  # area to the right of critical value; here 5% --> 95% confidence  --> +/- 2sigma
-            cutoff=0.32  # area to the right of critical value; here 32% --> 68% confidence --> +/- 1sigma
+            cutoff=0.05  # area to the right of critical value; here 5% --> 95% confidence  --> +/- 2sigma
+            #cutoff=0.32  # area to the right of critical value; here 32% --> 68% confidence --> +/- 1sigma
             deltachi2=scipychi2.ppf(1-cutoff, dgf)
         else:
-            print "DGF is zero or negative."
-
+            print("DGF is zero or negative.")
 
         # The minimum
         # find best fit set of parameters 
@@ -378,49 +513,77 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
         bestchi2=round(bestchi2,2)
         bestreducedchi2=round(bestchi2/dgf,2)
 
-        # the credible interval --> use for error estimate
-        # not yet implemented though --> will be done in later version
-        index_credible_int=ma.where(chi2<chi2+deltachi2)
+        #################################################
+        ########## Show Chi2 result on screen ###########
+        #################################################
 
-        if len(index_credible_int[0])>3:
+        if SNR>snr_lim and bestn>0 and not domcmc:
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+            print("#### Bestfit Parameters for pixel nr. "+str(p+1)+" ("+str(round(ra[p],5))+","+str(round(de[p],5))+ ") ####")
+            print("chi2\t\t" + str(bestchi2))
+            print("red. chi2\t\t" + str(bestreducedchi2))
+            print("n\t\t" + str(bestn))
+            print("T\t\t" + str(bestT))
+            print("Width\t\t" + str(bestwidth))
+            print()
 
-            quantiles=[0.0,1.0]
+            #############################################
+            # save results in array for later file export
+            result.append([ra[p],de[p],ct_l,dgf,bestchi2,bestn,bestT,bestwidth,obstrans])
 
-            # parameter limits/error within interval
-            interval=T[index_credible_int]
-            e1_bestT,e2_bestT=np.quantile(interval,quantiles)
+        ###################################################################
+        ###################################################################
+        ################################# MCMC ############################
+        ###################################################################
 
-            interval=n[index_credible_int]
-            e1_bestn,e2_bestn=np.quantile(interval,quantiles)
+        if SNR>snr_lim and bestn>0 and domcmc:
 
-            interval=width[index_credible_int]
-            e1_bestwidth,e2_bestwidth=np.quantile(interval,quantiles)
+                #### Create directory for output png files ###
+                if not os.path.exists('./results/'):
+                    os.makedirs('./results/')
 
-            interval=densefrac[index_credible_int]
-            e1_bestdensefrac,e2_bestdensefrac=np.quantile(interval,quantiles)
+                starttime=datetime.now()
 
-            result.append([ra[p],de[p],bestchi2,bestn,bestT,bestwidth,bestdensefrac])
+                ndim, nwalkers = 3, 50
 
-        """
-        else:
-            result.append([ra[p],de[p],-99999,-99999,-99999,-99999,-99999])
-        """
+                # model grid in results file
+                grid_theta = np.array([n,T,width],dtype=np.float64)
+                grid_loglike  = -0.5 * 10**chi2     # note that variable "chi2" is in fact log10(chi2) here
+
+                # Set up the backend
+                # Don't forget to clear it in case the file already exists
+                status_filename = "./results/"+obsdata_file[:-4]+"_mcmc_"+str(p+1)+".h5"
+
+                backend = emcee.backends.HDFBackend(status_filename)
+                backend.reset(nwalkers, 3)
+
+                #### main ####
+                mymcmc(grid_theta, grid_loglike, ndim, nwalkers, backend, interp)
+                ##############
+
+                duration=datetime.now()-starttime
+                print("Duration for Pixel "+str(p+1)+": "+str(duration.seconds)+"sec")
+
+                ########## MAKE CORNER PLOT #########
+                outpngfile="./results/"+obsdata_file[:-4]+"_mcmc_"+str(p+1)+".png"
+                bestn_mcmc_val,bestn_mcmc_upper,bestn_mcmc_lower,bestT_mcmc_val,bestT_mcmc_upper,bestT_mcmc_lower,bestW_mcmc_val,bestW_mcmc_upper,bestW_mcmc_lower=mcmc_corner_plot(status_filename,outpngfile)
+
+                print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+                print("#### Bestfit Parameters for pixel nr. "+str(p+1)+" ("+str(round(ra[p],5))+","+str(round(de[p],5))+ ") ####")
+                print("n\t\t" + bestn_mcmc_val + " " + bestn_mcmc_upper + " " + bestn_mcmc_lower)
+                print("T\t\t" + bestT_mcmc_val + " " + bestT_mcmc_upper + " " + bestT_mcmc_lower)
+                print("Width\t\t" + bestW_mcmc_val + " " + bestW_mcmc_upper + " " + bestW_mcmc_lower)
+                print()
 
 
-        ############################################
-        ########## Plot result on screen ###########
-        ############################################
-
-        if SNR>snr_lim and bestn>0:
-            print "\n#### Bestfit Parameters for pixel nr. "+str(p+1)+" ("+str(round(ra[p],5))+","+str(round(de[p],5))+ ") ####"
-            print "chi2\t\t" + str(bestchi2)
-            print "reduced chi2\t\t" + str(bestreducedchi2)
-            print "n\t\t" + str(bestn)
-            print "T\t\t" + str(bestT)
-            print
-            print "Width\t\t" + str(bestwidth)
-            print "densefrac\t\t" + str(bestdensefrac)
-            print
+                #############################################
+                # save results in array for later file export
+                result.append([ra[p],de[p],ct_l,dgf,float(bestn_mcmc_val),float(bestn_mcmc_upper),float(bestn_mcmc_lower),\
+                                                    float(bestT_mcmc_val),float(bestT_mcmc_upper),float(bestT_mcmc_lower),\
+                                                    float(bestW_mcmc_val),float(bestW_mcmc_upper),float(bestW_mcmc_lower),obstrans])
+                
+                ###################################################################
+                ###################################################################
 
 
 
@@ -548,7 +711,10 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting):
     ################################################
     ################################################
     # write result to a new output table
-    outtable=obsdata_file[:-4]+"_nT.txt"
+    if not domcmc:
+        outtable=obsdata_file[:-4]+"_nT.txt"
+    else:
+        outtable=obsdata_file[:-4]+"_nT_mcmc.txt"
     resultfile="./results/"+outtable
-    write_result(result,resultfile)
+    write_result(result,resultfile,domcmc)
 
