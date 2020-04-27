@@ -555,7 +555,7 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
                 status_filename = "./results/"+obsdata_file[:-4]+"_mcmc_"+str(p+1)+".h5"
 
                 backend = emcee.backends.HDFBackend(status_filename)
-                backend.reset(nwalkers, 3)
+                backend.reset(nwalkers, ndim)
 
                 #### main ####
                 mymcmc(grid_theta, grid_loglike, ndim, nwalkers, backend, interp)
