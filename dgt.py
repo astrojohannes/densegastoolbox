@@ -14,7 +14,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import re
 from matplotlib import rc
-#from scipy.interpolate import Rbf, LinearNDInterpolator
+from scipy.interpolate import Rbf, LinearNDInterpolator
 from scipy.stats import chi2 as scipychi2
 from pylab import *
 from read_grid_ndist import read_grid_ndist
@@ -337,11 +337,24 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
     ###########################
 
     # check for coordinates in input file
-    if not 'RA' in obs.keys() or not 'DEC' in obs.keys():
+    have_radec=False
+    have_ra_special=False
+
+    if 'RA' in obs.keys() and 'DEC' in obs.keys():
+        have_radec=True
+    elif '#RA' in obs.keys() and 'DEC' in obs.keys():
+        have_radec=True
+        have_ra_special=True
+    else:
+        have_radec=False
+
+
+    if not have_radec:
         print("!!!")
         print("!!! No coordinates found in input ascii file. Check column header for 'RA' and 'DEC'. Exiting.")
         print("!!!")
         exit()
+
         
     # count number of lines in input data
     ct_l=0
@@ -363,7 +376,11 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
         print("!!!")
         exit()
 
-    ra=np.array(obs['RA'])
+    if have_ra_special:
+        ra=np.array(obs['#RA'])
+    else:
+        ra=np.array(obs['RA'])
+
     de=np.array(obs['DEC'])
 
 
@@ -530,6 +547,10 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
             #############################################
             # save results in array for later file export
             result.append([ra[p],de[p],ct_l,dgf,bestchi2,bestn,bestT,bestwidth,obstrans])
+            do_this_plot=True
+        else:
+            result.append([ra[p],de[p],ct_l,dgf,-99999.9,-99999.9,-99999.9,-99999.9,obstrans])
+            do_this_plot=False
 
         ###################################################################
         ###################################################################
@@ -593,7 +614,7 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
         ############################################
 
         # Plotting
-        if SNR>snr_lim and plotting==True and bestn>0:
+        if SNR>snr_lim and plotting==True and bestn>0 and do_this_plot:
 
             #### Create directory for output png files ###
             if not os.path.exists('./results/'):

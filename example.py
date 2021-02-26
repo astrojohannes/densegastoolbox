@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
 
 from dgt import dgt
 
@@ -20,12 +20,13 @@ if __name__ == "__main__":
     # following column names:
     # 
     # CO10      CO21        CO32
-    # HCN10     HCN21       HCN32,
-    # HCOP10    HCOP21      HCOP32,
-    # HNC10     HNC21       HNC32,
-    # 13CO10    13CO21      13CO32,
-    # C18O10    C18O21      C18O32,
+    # HCN10     HCN21       HCN32
+    # HCOP10    HCOP21      HCOP32
+    # HNC10     HNC21       HNC32
+    # 13CO10    13CO21      13CO32
+    # C18O10    C18O21      C18O32
     # C17O10    C17O21      C17O32
+    # CS10      CS21        CS32
     #
     # The uncertainties are similar, but starting with "UC_",
     # e.g. UC_CO10 or UC_HCN21

@@ -1,15 +1,19 @@
 # Dense Gas Toolbox #
 
 # Aim
-Calculate density and temperature from observed molecular lines.
+Calculate density and temperature from observed molecular emission lines,
+using radiative transfer models.
 
 # Method
-Minimize observed line ratios against radiative transfer models.
 Our models assume that the molecular emission lines emerge from a
 multi-density medium rather than from a single density alone.
+The density distribution is assumed to be log-normal or log-normal with
+a power-law tail.
+The parameters (density, temperature and the width of density distribution)
+are inferred using Bayesian statistics, i.e. Markov chain Monte Carlo (MCMC).
 
 # Results
-Using an ascii table of observed molecular intensities [K km/s],
+Given an ascii table of observed molecular intensities [K km/s],
 the results (mass-weighted mean density, temperature and width of the density
 distribution) are saved in an output ascii file. Furthermore, diagnostic plots
 are created to assess the quality of the fit/derived parameters.
@@ -17,6 +21,23 @@ are created to assess the quality of the fit/derived parameters.
 ---
 
 # VERSION HISTORY 
+- Feb 26, 2021 | Version 1.3 (major update):
+   * http://doi.org/10.5281/zenodo.3735055
+   
+   * New: The user may optionally infer the parameters (density, temperature, width of
+     density distribution) via application of the MCMC method.
+   
+   * New: Diagnosis plots (corner plots) are produced when MCMC method is used.
+
+     
+   * Update: Code updated to Python 3.X
+      
+   * Update: Re-calculation of models, now including the following transitions:
+     12CO (up to J=3), 13CO (up to J=3), C18O (up to J=3), C17O (up to J=3),
+     HCN (up to J=3), HCO+ (up to J=3), HNC (up to J=3) and CS (up to J=3)
+
+---
+
 - Mar 31, 2020 | Version 1.2 (major update):
    * http://doi.org/10.5281/zenodo.3735055
 
