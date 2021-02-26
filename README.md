@@ -22,7 +22,7 @@ are created to assess the quality of the fit/derived parameters.
 
 # VERSION HISTORY 
 - Feb 26, 2021 | Version 1.3 (major update):
-   * http://doi.org/10.5281/zenodo.3735055
+   * http://doi.org/10.5281/zenodo.4565176
    
    * New: The user may optionally infer the parameters (density, temperature, width of
      density distribution) via application of the MCMC method.
