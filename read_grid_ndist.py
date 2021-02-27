@@ -54,8 +54,11 @@ def read_grid_ndist(transition,usertkin,userwidth,powerlaw):
             IHNC32_ICO,n_mean_IHNC32,\
             IHCOP10_ICO,n_mean_IHCOP10,\
             IHCOP21_ICO,n_mean_IHCOP21,\
-            IHCOP32_ICO,n_mean_IHCOP32 \
-            = np.loadtxt(gridfile, skiprows=49,unpack=True)
+            IHCOP32_ICO,n_mean_IHCOP32,\
+            ICS10_ICO,n_mean_ICS10,\
+            ICS21_ICO,n_mean_ICS21,\
+            ICS32_ICO,n_mean_ICS32 \
+            = np.loadtxt(gridfile, skiprows=55,unpack=True)
 
     # from variables to list
     mygrid=[Tkin,n_mean,width,pl,plmass,n_mean_mass,densefrac, \
@@ -79,7 +82,10 @@ def read_grid_ndist(transition,usertkin,userwidth,powerlaw):
             IHNC32_ICO,n_mean_IHNC32,\
             IHCOP10_ICO,n_mean_IHCOP10,\
             IHCOP21_ICO,n_mean_IHCOP21,\
-            IHCOP32_ICO,n_mean_IHCOP32]
+            IHCOP32_ICO,n_mean_IHCOP32,\
+            ICS10_ICO,n_mean_ICS10,\
+            ICS21_ICO,n_mean_ICS21,\
+            ICS32_ICO,n_mean_ICS32]
 
     # limit to reasonable range (defined by one-zone grid and width of distribution)
     # compare to http://www.densegastoolbox.com/explorer/
@@ -128,7 +134,10 @@ def read_grid_ndist(transition,usertkin,userwidth,powerlaw):
             IHNC32_ICO,n_mean_IHNC32,\
             IHCOP10_ICO,n_mean_IHCOP10,\
             IHCOP21_ICO,n_mean_IHCOP21,\
-            IHCOP32_ICO,n_mean_IHCOP32 = mygrid
+            IHCOP32_ICO,n_mean_IHCOP32,\
+            ICS10_ICO,n_mean_ICS10,\
+            ICS21_ICO,n_mean_ICS21,\
+            ICS32_ICO,n_mean_ICS32 = mygrid
 
 
     # match variables from above to dict keys --> should be improved later
@@ -160,6 +169,10 @@ def read_grid_ndist(transition,usertkin,userwidth,powerlaw):
     m['HCOP10']=IHCOP10_ICO*ICO
     m['HCOP21']=IHCOP21_ICO*ICO
     m['HCOP32']=IHCOP32_ICO*ICO
+
+    m['CS10']=ICS10_ICO*ICO
+    m['CS21']=ICS21_ICO*ICO
+    m['CS32']=ICS32_ICO*ICO
 
     m['T']=Tkin
     m['n']=n_mean_mass

@@ -1,4 +1,5 @@
 # Dense Gas Toolbox #
+DOI: 10.5281/zenodo.3686329
 
 # Aim
 Calculate density and temperature from observed molecular emission lines,
@@ -20,9 +21,17 @@ are created to assess the quality of the fit/derived parameters.
 
 ---
 
-# VERSION HISTORY 
+# VERSION HISTORY
+
+- Feb 27, 2021 | Version 1.4 (minor update):
+
+   * Bugfix: Fixing import of CS model grid
+
+   * Update: Code updated to remove deprecation warnings
+
+---
+
 - Feb 26, 2021 | Version 1.3 (major update):
-   * http://doi.org/10.5281/zenodo.4565176
    
    * New: The user may optionally infer the parameters (density, temperature, width of
      density distribution) via application of the MCMC method.
@@ -39,7 +48,6 @@ are created to assess the quality of the fit/derived parameters.
 ---
 
 - Mar 31, 2020 | Version 1.2 (major update):
-   * http://doi.org/10.5281/zenodo.3735055
 
    * New: An online version is now available at:
 
@@ -68,14 +76,12 @@ are created to assess the quality of the fit/derived parameters.
 ---
 
 - Feb 28, 2020 | Version 1.1 (minor update):
-   * http://doi.org/10.5281/zenodo.3691423
 
    * This release now includes the data table ("ascii_galaxy.txt") used by "example.py".
 
 ---
 
 - Feb 25, 2020 | Version 1.0:
-   * http://doi.org/10.5281/zenodo.3686330
 
    * The initial release contains models for the following lines:
      12CO (1-0), 12CO (2-1), 12CO (3-2), 13CO (1-0), HCN (1-0), HNC (1-0) and

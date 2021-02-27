@@ -12,7 +12,7 @@ if __name__ == "__main__":
     ##############################################################
     #################### USER INPUT BELOW ########################
     ##############################################################
-    obsdata_file = 'ngc5194.txt'    # table of observed intensities in [K km/s]
+    obsdata_file = 'ascii_galaxy.txt'    # table of observed intensities in [K km/s]
     
     ###################################
     # Note that the input file (obsdata_file) must have a 1-line
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     snr_line='HCN10'                        # only use data above SNR cut in given line, should be faintest line
     snr_lim=5.0                             # this is the corresponding SNR cut
     plotting=True                           # create plots
-    domcmc=True                             # use MCMC for parameter estimation; this is recommended, but takes time
+    domcmc=True                            # use MCMC for parameter estimation; this is recommended, but may take very long
     ##############################################################
 
     # call Dense GasTool box

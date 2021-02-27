@@ -1,14 +1,12 @@
 Cite as:
 
-Johannes Puschnig. (2021, March 31). Dense Gas Toolbox (Version v1.3). Zenodo. http://doi.org/10.5281/zenodo.4565176
-
 @software{Puschnig2021,
   author       = {Johannes Puschnig},
   title        = {Dense Gas Toolbox},
   month        = feb,
   year         = 2021,
   publisher    = {Zenodo},
-  version      = {v1.3},
-  doi          = {10.5281/zenodo.4565176},
-  url          = {https://doi.org/10.5281/zenodo.4565176}
+  version      = {v1.4},
+  doi          = {10.5281/zenodo.3686329},
+  url          = {https://doi.org/10.5281/zenodo.3686329}
 }

@@ -73,7 +73,6 @@ def mcmc_corner_plot(infile,outfile):
         # density: 10**1.8 --> 10**5
             ax = axes[yi, 0]
             
-
-    figure.savefig(outfile,fig_layout='tight')
+    figure.savefig(outfile,bbox_inches='tight')
 
     return [bestn_mcmc_val,bestn_mcmc_upper,bestn_mcmc_lower,bestT_mcmc_val,bestT_mcmc_upper,bestT_mcmc_lower,bestW_mcmc_val,bestW_mcmc_upper,bestW_mcmc_lower]

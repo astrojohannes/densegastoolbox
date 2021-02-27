@@ -202,7 +202,7 @@ def read_obs(filename):
 ##################################################################
 
 def write_result(result,outfile,domcmc):
-    result=np.array(result)
+    result=np.array(result,dtype=object)
 
     tmpoutfile=outfile+'.tmp'
 
@@ -278,7 +278,7 @@ def makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile
         ax.tick_params(axis='both', which='major', labelsize=16)
         ax.tick_params(axis='both', which='minor', labelsize=16)
 
-        fig.savefig(pngoutfile,fig_layout='tight')
+        fig.savefig(pngoutfile,bbox_inches='tight')
         plt.close()
 
         ######################################
@@ -316,7 +316,8 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
         'HNC10','HNC21','HNC32',\
         '13CO10','13CO21','13CO32',\
         'C18O10','C18O21','C18O32',\
-        'C17O10','C17O21','C17O32'\
+        'C17O10','C17O21','C17O32',\
+        'CS10','CS21','CS32'\
     ]
 
     if not snr_line in valid_lines:
@@ -534,30 +535,32 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
         ########## Show Chi2 result on screen ###########
         #################################################
 
-        if SNR>snr_lim and bestn>0 and not domcmc:
-            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-            print("#### Bestfit Parameters for pixel nr. "+str(p+1)+" ("+str(round(ra[p],5))+","+str(round(de[p],5))+ ") ####")
-            print("chi2\t\t" + str(bestchi2))
-            print("red. chi2\t\t" + str(bestreducedchi2))
-            print("n\t\t" + str(bestn))
-            print("T\t\t" + str(bestT))
-            print("Width\t\t" + str(bestwidth))
-            print()
+        if not domcmc:
+            if SNR>snr_lim and bestn>0:
+                print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+                print("#### Bestfit Parameters for pixel nr. "+str(p+1)+" ("+str(round(ra[p],5))+","+str(round(de[p],5))+ ") ####")
+                print("chi2\t\t" + str(bestchi2))
+                print("red. chi2\t\t" + str(bestreducedchi2))
+                print("n\t\t" + str(bestn))
+                print("T\t\t" + str(bestT))
+                print("Width\t\t" + str(bestwidth))
+                print()
 
-            #############################################
-            # save results in array for later file export
-            result.append([ra[p],de[p],ct_l,dgf,bestchi2,bestn,bestT,bestwidth,obstrans])
-            do_this_plot=True
-        else:
-            result.append([ra[p],de[p],ct_l,dgf,-99999.9,-99999.9,-99999.9,-99999.9,obstrans])
-            do_this_plot=False
+                #############################################
+                # save results in array for later file export
+                result.append([ra[p],de[p],ct_l,dgf,bestchi2,bestn,bestT,bestwidth,obstrans])
+                do_this_plot=True
+            else:
+                result.append([ra[p],de[p],ct_l,dgf,-99999.9,-99999.9,-99999.9,-99999.9,obstrans])
+                do_this_plot=False
 
         ###################################################################
         ###################################################################
         ################################# MCMC ############################
         ###################################################################
 
-        if SNR>snr_lim and bestn>0 and domcmc:
+        if domcmc:
+            if SNR>snr_lim and bestn>0:
 
                 #### Create directory for output png files ###
                 if not os.path.exists('./results/'):
@@ -602,12 +605,13 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
                 result.append([ra[p],de[p],ct_l,dgf,float(bestn_mcmc_val),float(bestn_mcmc_upper),float(bestn_mcmc_lower),\
                                                     float(bestT_mcmc_val),float(bestT_mcmc_upper),float(bestT_mcmc_lower),\
                                                     float(bestW_mcmc_val),float(bestW_mcmc_upper),float(bestW_mcmc_lower),obstrans])
-                
+                do_this_plot=True 
                 ###################################################################
                 ###################################################################
 
 
-
+            else:
+                do_this_plot=False
 
         ############################################
         ################ Make Figures ##############
