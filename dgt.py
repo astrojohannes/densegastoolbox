@@ -499,10 +499,10 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
 
         # n,T
         grid_n=mdl['n']
-        n=ma.array(grid_n)
+        n=ma.array(grid_n,mask=m)
 
         grid_T=mdl['T']
-        T=ma.array(grid_T)
+        T=ma.array(grid_T,mask=m)
 
 
 
@@ -551,6 +551,9 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
                 result.append([ra[p],de[p],ct_l,dgf,bestchi2,bestn,bestT,bestwidth,obstrans])
                 do_this_plot=True
             else:
+                print("!-!-!-!-!-!")
+                print("Pixel no. " +str(p+1)+ " --> SNR too low or density<0.")
+                print()
                 result.append([ra[p],de[p],ct_l,dgf,-99999.9,-99999.9,-99999.9,-99999.9,obstrans])
                 do_this_plot=False
 
@@ -594,9 +597,9 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
 
                 print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
                 print("#### Bestfit Parameters for pixel nr. "+str(p+1)+" ("+str(round(ra[p],5))+","+str(round(de[p],5))+ ") ####")
-                print("n\t\t" + bestn_mcmc_val + " " + bestn_mcmc_upper + " " + bestn_mcmc_lower)
-                print("T\t\t" + bestT_mcmc_val + " " + bestT_mcmc_upper + " " + bestT_mcmc_lower)
-                print("Width\t\t" + bestW_mcmc_val + " " + bestW_mcmc_upper + " " + bestW_mcmc_lower)
+                print("n\t\t" + str(bestn_mcmc_val) + " " + str(bestn_mcmc_upper) + " " + str(bestn_mcmc_lower))
+                print("T\t\t" + str(bestT_mcmc_val) + " " + str(bestT_mcmc_upper) + " " + str(bestT_mcmc_lower))
+                print("Width\t\t" + str(bestW_mcmc_val) + " " + str(bestW_mcmc_upper) + " " + str(bestW_mcmc_lower))
                 print()
 
 
@@ -625,10 +628,10 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
                 os.makedirs('./results/')
 
             # zoom-in variables
-            zoom_n=n[chi2<bestchi2+deltachi2].compressed()
-            zoom_chi2=chi2[chi2<bestchi2+deltachi2].compressed()
-            zoom_width=width[chi2<bestchi2+deltachi2].compressed()
-
+            idx=np.where(chi2<bestchi2+deltachi2)
+            zoom_n=n[idx].compressed()
+            zoom_chi2=chi2[idx].compressed()
+            zoom_width=width[idx].compressed()
 
             ########################## PLOT 1 #############################
 
