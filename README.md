@@ -23,6 +23,20 @@ are created to assess the quality of the fit/derived parameters.
 
 # VERSION HISTORY
 
+
+- May 23, 2022 | Version 1.5 (minor update):
+
+   * Update: User may now also enter/change the number of MCMC simulations to run
+
+   * Bugfix: In cases where sampler did not converge (Tau is infinite or log-probability
+     is neg. infinity) previous versions crashed with "ValueError: cannot convert float
+     NaN to integer" when trying to produce corner plots. Now, the program continues
+     execution and shows one of the following Warnings: "Warning: Tau is NaN, corner plot
+     cannot be created!" or "Warning: MCMC did not converge, you may try to increase the
+     number of simulations (nsims)!"
+
+---
+
 - Feb 27, 2021 | Version 1.4 (minor update):
 
    * Bugfix: Fixing import of CS model grid

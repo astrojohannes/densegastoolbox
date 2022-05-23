@@ -53,7 +53,7 @@ mpl.rcParams['ytick.right'] = True
 
 ##################################################################
 
-def mymcmc(grid_theta, grid_loglike, ndim, nwalkers, backend, interp):
+def mymcmc(grid_theta, grid_loglike, ndim, nwalkers, backend, interp, nsims):
 
     ##### Define parameter grid for random selection of initial points for walker #######
     ##### PARAMETER GRID #####
@@ -71,7 +71,7 @@ def mymcmc(grid_theta, grid_loglike, ndim, nwalkers, backend, interp):
 
     with Pool() as pool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, getloglike, args=([grid_theta, grid_loglike, interp]), pool=pool, backend=backend)
-        sampler.run_mcmc(pos, 600, progress=True, store=True)
+        sampler.run_mcmc(pos, nsims, progress=True, store=True)
 
 ############################################################
 
@@ -179,7 +179,7 @@ def read_obs(filename):
     # read first line, used as dict keys
     with open(filename) as f:
         alllines=f.readlines()
-        line=alllines[0]
+        line=alllines[0].replace('#','').replace('# ','').replace('#\t','')
 
         # read keys
         keys=re.sub('\s+',' ',line).strip().split(' ')
@@ -191,7 +191,7 @@ def read_obs(filename):
         alllines=f.readlines()
         lines=alllines[1:]
         for i in range(len(keys)):
-            get_col = lambda col: (re.sub('\s+',' ',line).strip().split(' ')[i] for line in lines)
+            get_col = lambda col: (re.sub('\s+',' ',line).strip().split(' ')[i] for line in lines if line)
             val=np.array([float(a) for a in get_col(i)],dtype=np.float64)
             obsdata[keys[i]]=val
             keys[i] + ": "+str(val) 
@@ -291,7 +291,7 @@ def makeplot(x,y,z,this_slice,this_bestval,xlabel,ylabel,zlabel,title,pngoutfile
 ##################################################################
 ##################################################################
 
-def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
+def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc,nsims):
 
     interp=False    # interpolate loglike on model grid (for mcmc sampler)
                     # this is not used yet, because needs some fixing
@@ -585,7 +585,7 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc):
                 backend.reset(nwalkers, ndim)
 
                 #### main ####
-                mymcmc(grid_theta, grid_loglike, ndim, nwalkers, backend, interp)
+                mymcmc(grid_theta, grid_loglike, ndim, nwalkers, backend, interp, nsims)
                 ##############
 
                 duration=datetime.now()-starttime
