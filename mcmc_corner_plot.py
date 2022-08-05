@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import emcee
 import numpy as np
 import corner
@@ -42,22 +44,26 @@ def mcmc_corner_plot(infile,outfile):
         print()
         """
 
-        all_samples = np.concatenate((samples, logprob[:, None]), axis=1)
+        #all_samples = np.concatenate((samples, logprob[:, None]), axis=1)
+
+        all_samples = samples
 
         labels=['n','T','width']
-        labels += ["log prob"]
+        #labels += ["log prob"]
     
         # 0.16 and 0.84 percentiles correspond to +/- 1 sigma in a Gaussian
         q=[0.16, 0.5, 0.84]
-        figure=corner.corner(all_samples, labels=labels, \
+        figure=corner.corner(all_samples, labels=labels,\
+            range=[(10,1e5),(10,100),(0.0,1.4)],\
             quantiles=q,\
             plot_datapoints=False,\
             plot_contours=True,\
+            plot_density=True,\
             fill_contours=True,\
-            contour_kwargs={"cmap":"viridis","colors":None,"linewidths":0},\
-            contourf_kwargs={"cmap":"viridis","colors":None,"linewidths":0},\
-            show_titles=True, title_kwargs={"fontsize": 12},\
-            label_kwargs={"fontsize": 12}
+            contour_kwargs={'cmap':'viridis','colors':None},\
+            contourf_kwargs={'cmap':'viridis','colors':None},\
+            show_titles=True, title_kwargs={"fontsize": 16},\
+            label_kwargs={"fontsize": 16}
         )
     
         # calculate quantile-based 1-sigma error bars
@@ -80,15 +86,22 @@ def mcmc_corner_plot(infile,outfile):
         bestW_mcmc_val=str(round(bestW_mcmc,2))
         bestW_mcmc_upper="+"+str(round(upperW_mcmc-bestW_mcmc,2))
         bestW_mcmc_lower="-"+str(round(bestW_mcmc-lowerW_mcmc,2))
-    
+   
+        """ 
         # Extract the axes
-        axes = np.array(figure.axes).reshape((4, 4))
+        #axes = np.array(figure.axes).reshape((4, 4))
+        axes = np.array(figure.axes).reshape((3, 3))
     
         # set x axis range
-        for yi in range(4):
+        #for yi in range(4):
+        for yi in range(3):
             # density: 10**1.8 --> 10**5
-                ax = axes[yi, 0]
-                
+            ax = axes[yi, 0]
+            if yi==0: ax.set_xlim(10.0,100000.0)   # density
+            if yi==1: ax.set_xlim(10,100)   # temperature
+            if yi==2: ax.set_xlim(0.2,2.0)  # width
+        """
+
         figure.savefig(outfile,bbox_inches='tight')
 
     else:
