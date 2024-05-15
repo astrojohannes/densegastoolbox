@@ -17,6 +17,8 @@ def mcmc_corner_plot(infile,outfile):
     if not pd.isna(np.nanmax(tau)) and not pd.isna(np.nanmin(tau)):
         burnin = int(2 * np.nanmax(tau))
         thin = int(0.5 * np.nanmin(tau))
+        if thin == 0:
+            thin = 1
     
         samples = reader.get_chain(flat=True, discard=burnin, thin=thin)
         logprob = reader.get_log_prob(flat=True, discard=burnin, thin=thin)

@@ -12,6 +12,7 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import pandas as pd
 import re
 from matplotlib import rc
 from scipy.interpolate import Rbf, LinearNDInterpolator
@@ -25,6 +26,8 @@ import warnings
 from mcmc_corner_plot import mcmc_corner_plot
 
 cmap='cubehelix'
+
+DEBUG=False
 
 # ignore some warnings
 warnings.filterwarnings("ignore", message="divide by zero encountered in divide")
@@ -167,9 +170,9 @@ def scalar(array):
     if array.size==0:
         return -9.999999
     elif array.size==1:
-        return np.asscalar(array)
+        return array.item()
     else:
-        return np.asscalar(array[0])
+        return array[0].item()
 
 ##################################################################
 
@@ -576,6 +579,14 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc,n
                 # model grid in results file
                 grid_theta = np.array([n,T,width],dtype=np.float64)
                 grid_loglike  = -0.5 * 10**chi2     # note that variable "chi2" is in fact log10(chi2) here
+
+                if DEBUG:
+                    from tabulate import tabulate
+                    print("LOGLIKE")
+                    print(tabulate(pd.DataFrame(grid_loglike), headers='keys', tablefmt='psql'))
+                    print("88888888888888888888888888888888888888888888888888888888888")
+                    print()
+
 
                 # Set up the backend
                 # Don't forget to clear it in case the file already exists
