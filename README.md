@@ -23,10 +23,10 @@ are created to assess the quality of the fit/derived parameters.
 
 # VERSION HISTORY
 
-- May 21, 2024 | Version 1.6 (final v1 release)
-   * This is the final v1.x release that is based on the fixed optical depth models (as used since version 1.3)
+- May 22, 2024 | Version 1.7 
+   * This is the latest release that is based on the fixed optical depth models (as used since version 1.3)
 
-   * Updated code to account for deprecation and future warnings
+   * Updated code to account for deprecation, future and syntax warnings
 
    * The following molecular transitions are covered:
         CO (1-0)      CO (2-1)        CO (3-2)
@@ -43,6 +43,16 @@ are created to assess the quality of the fit/derived parameters.
    * The widths of the density distributions range from 0.2 to 0.9dex (in steps of 0.1dex)
 
    * See "example.py" for how to use the Dense Gas Toolbox. It's easy!
+
+---
+
+- May 21, 2024 | Version 1.6
+
+   * Bugfixed corner plot axes limits
+
+   * Added debugging statements
+
+   * Added INSTALL file
 
 ---
 

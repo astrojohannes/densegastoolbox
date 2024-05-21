@@ -226,7 +226,7 @@ def write_result(result,outfile,domcmc):
             header="RA\tDEC\tcnt\tdgf\tn\te_n1\te_n2\tT\te_T1\te_T2\twidth\te_width1\te_width2\tlines_obs")
 
     # clean up
-    replacecmd = r"sed -e\"s/', '/|/g;s/'//g;s/\[//g;s/\]//g\""
+    replacecmd = "sed -e\"s/', '/|/g;s/'//g;s/[//g;s/]//g\""
     os.system("cat "+tmpoutfile + "| "+ replacecmd + " > " + outfile)
     os.system("rm -rf "+tmpoutfile)
 
