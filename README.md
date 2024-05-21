@@ -23,6 +23,26 @@ are created to assess the quality of the fit/derived parameters.
 
 # VERSION HISTORY
 
+- May 21, 2024 | Version 1.6 (final v1 release)
+   * This is the final v1.x release that is based on the fixed optical depth models (as used since version 1.3)
+
+   * Updated code to account for deprecation and future warnings
+
+   * The following molecular transitions are covered:
+        CO (1-0)      CO (2-1)        CO (3-2)
+        HCN (1-0)     HCN (2-1)       HCN (3-2)
+        HCOP (1-0)    HCOP (2-1)      HCOP (3-2)
+        HNC (1-0)     HNC (2-1)       HNC (3-2)
+        13CO (1-0)    13CO (2-1)      13CO (3-2)
+        C18O (1-0)    C18O (2-1)      C18O (3-2)
+        C17O (1-0)    C17O (2-1)      C17O (3-2)
+        CS (1-0)      CS (2-1)        CS (3-2)
+
+   * Temperatures range from 10 to 50 K (in steps of 5K)
+
+   * The widths of the density distributions range from 0.2 to 0.9dex (in steps of 0.1dex)
+
+   * See "example.py" for how to use the Dense Gas Toolbox. It's easy!
 
 - May 23, 2022 | Version 1.5 (minor update):
 
@@ -51,7 +71,6 @@ are created to assess the quality of the fit/derived parameters.
      density distribution) via application of the MCMC method.
    
    * New: Diagnosis plots (corner plots) are produced when MCMC method is used.
-
      
    * Update: Code updated to Python 3.X
       

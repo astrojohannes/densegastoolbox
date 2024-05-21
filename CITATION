@@ -1,12 +1,12 @@
 Cite as:
 
-@software{Puschnig2021,
+@software{Puschnig2024,
   author       = {Johannes Puschnig},
   title        = {Dense Gas Toolbox},
-  month        = feb,
-  year         = 2021,
+  month        = May,
+  year         = 2024,
   publisher    = {Zenodo},
-  version      = {v1.4},
+  version      = {v1.6},
   doi          = {10.5281/zenodo.3686329},
   url          = {https://doi.org/10.5281/zenodo.3686329}
 }

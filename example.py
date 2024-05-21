@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 from dgt import dgt
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     ##############################################################
     # User Parameters
-    powerlaw=False                           # logNorm or logNorm+PL density distribution
+    powerlaw=True                           # logNorm or logNorm+PL density distribution
     T=0                                     # gas temperature; use T=0 to leave as free parameter
                                             # must be one of: 10,15,20,25,30,35,40,45,50
     W=0                                     # with of density distribution in dex; use W=0 to leave as free parameter
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     snr_lim=5.0                             # this is the corresponding SNR cut
     plotting=True                           # create plots
     domcmc=True                             # use MCMC for parameter estimation; this is recommended, but may take very long
-    nsims=100                               # number of MCMC simulations to perform (should be >100 at least, better use 500+)
+    nsims=5000                              # number of MCMC simulations to perform (should be >100 at least, better use 500+)
     ##############################################################
 
     # call Dense GasTool box

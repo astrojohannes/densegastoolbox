@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python
 
 ######################################################################################
 # This takes observed intensities I of multiple lines from a table, e.g.
@@ -124,7 +124,7 @@ def getloglike(theta, grid_theta, grid_loglike, interp):
     # nearest neighbour loglike
     if not interp:
         diff=np.ones_like(grid_loglike)*1e10
-        isclose=np.zeros_like(grid_loglike,dtype=np.bool)
+        isclose = np.zeros_like(grid_loglike, dtype=bool)
 
         for i in range(len(grid_theta.T)):
             # calculate element-wise quadratic difference and sum it up
