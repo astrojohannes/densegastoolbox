@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore", message="divide by zero encountered in divide"
 warnings.filterwarnings("ignore", message="divide by zero encountered") 
 warnings.filterwarnings("ignore", message="invalid value encountered")
 warnings.filterwarnings("ignore", message="overflow encountered in power")
-
+warnings.filterwarnings("ignore", message="All-NaN slice encountered")
 
 ##################################################################
 
@@ -664,7 +664,7 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc,n
             # Chi2 vs T plot zoom-in
             zoom_T=T[chi2<bestchi2+deltachi2].compressed()
             pl2=ax[1,1].scatter(zoom_chi2, np.log10(zoom_T),c=zoom_width, cmap='Accent',marker=',',s=9,vmin=width.min(),vmax=width.max())
-            ax[1,1].set_xlabel('$\chi^2}$')
+            ax[1,1].set_xlabel('$\chi^2$')
             fig.colorbar(pl2,ax=ax[1,1],label='$\mathsf{width}$')
  
             # plot

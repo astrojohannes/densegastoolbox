@@ -44,6 +44,8 @@ are created to assess the quality of the fit/derived parameters.
 
    * See "example.py" for how to use the Dense Gas Toolbox. It's easy!
 
+---
+
 - May 23, 2022 | Version 1.5 (minor update):
 
    * Update: User may now also enter/change the number of MCMC simulations to run

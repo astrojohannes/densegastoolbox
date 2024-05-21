@@ -42,7 +42,7 @@ if __name__ == "__main__":
     snr_lim=5.0                             # this is the corresponding SNR cut
     plotting=True                           # create plots
     domcmc=True                             # use MCMC for parameter estimation; this is recommended, but may take very long
-    nsims=5000                              # number of MCMC simulations to perform (should be >100 at least, better use 500+)
+    nsims=500                               # number of MCMC simulations to perform (should be >100 at least, better use 500+)
     ##############################################################
 
     # call Dense GasTool box
