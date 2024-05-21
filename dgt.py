@@ -185,7 +185,7 @@ def read_obs(filename):
         line=alllines[0].replace('#','').replace('# ','').replace('#\t','')
 
         # read keys
-        keys=re.sub('\s+',' ',line).strip().split(' ')
+        keys=re.sub(r'\s+',' ',line).strip().split(' ')
 
     f.close()
 
@@ -194,7 +194,7 @@ def read_obs(filename):
         alllines=f.readlines()
         lines=alllines[1:]
         for i in range(len(keys)):
-            get_col = lambda col: (re.sub('\s+',' ',line).strip().split(' ')[i] for line in lines if line)
+            get_col = lambda col: (re.sub(r'\s+',' ',line).strip().split(' ')[i] for line in lines if line)
             val=np.array([float(a) for a in get_col(i)],dtype=np.float64)
             obsdata[keys[i]]=val
             keys[i] + ": "+str(val) 
@@ -226,7 +226,7 @@ def write_result(result,outfile,domcmc):
             header="RA\tDEC\tcnt\tdgf\tn\te_n1\te_n2\tT\te_T1\te_T2\twidth\te_width1\te_width2\tlines_obs")
 
     # clean up
-    replacecmd="sed -e\"s/', '/|/g;s/'//g;s/\[//g;s/\]//g\""
+    replacecmd = r"sed -e\"s/', '/|/g;s/'//g;s/\[//g;s/\]//g\""
     os.system("cat "+tmpoutfile + "| "+ replacecmd + " > " + outfile)
     os.system("rm -rf "+tmpoutfile)
 
@@ -651,26 +651,26 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc,n
             # Chi2 vs n plot
 
             ax[0,0].scatter(chi2, np.log10(n),c=width, cmap='Accent',marker=',',s=4,vmin=width.min(),vmax=width.max())
-            ax[0,0].set_ylabel('$log\ n$') 
+            ax[0,0].set_ylabel(r'$log\ n$') 
 
             pl1=ax[0,1].scatter(zoom_chi2, np.log10(zoom_n),c=zoom_width, cmap='Accent',marker=',',s=9,vmin=width.min(),vmax=width.max())
-            fig.colorbar(pl1,ax=ax[0,1],label='$\mathsf{width}$')
+            fig.colorbar(pl1,ax=ax[0,1],label=r'$\mathsf{width}$')
 
             # Chi2 vs T plot
             ax[1,0].scatter(chi2, np.log10(T),c=width, cmap='Accent',marker=',',s=4,vmin=width.min(),vmax=width.max())
-            ax[1,0].set_xlabel('$\chi^2$')
-            ax[1,0].set_ylabel('$log\ T$') 
+            ax[1,0].set_xlabel(r'$\chi^2$')
+            ax[1,0].set_ylabel(r'$log\ T$') 
 
             # Chi2 vs T plot zoom-in
             zoom_T=T[chi2<bestchi2+deltachi2].compressed()
             pl2=ax[1,1].scatter(zoom_chi2, np.log10(zoom_T),c=zoom_width, cmap='Accent',marker=',',s=9,vmin=width.min(),vmax=width.max())
-            ax[1,1].set_xlabel('$\chi^2$')
-            fig.colorbar(pl2,ax=ax[1,1],label='$\mathsf{width}$')
+            ax[1,1].set_xlabel(r'$\chi^2$')
+            fig.colorbar(pl2,ax=ax[1,1],label=r'$\mathsf{width}$')
  
             # plot
             fig.subplots_adjust(left=0.06, bottom=0.06, right=1, top=0.96, wspace=0.04, hspace=0.04)
             fig = gcf()
-            fig.suptitle('Pixel: ('+str(p)+') SNR('+snr_line+'): '+str(SNR), fontsize=14, y=0.99) 
+            fig.suptitle('Pixel: '+str(p+1)+' SNR('+snr_line+'): '+str(SNR), fontsize=14, y=0.99) 
             chi2_filename=obsdata_file[:-4]+"_"+str(p+1)+'_chi2.png'
             fig.savefig('./results/'+chi2_filename) 
             #plt.show()
@@ -686,9 +686,9 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc,n
                   z=np.log10(zoom_chi2)
                   this_slice=zoom_width
                   this_bestval=bestwidth
-                  xlabel='$log\ n\ [cm^{-3}]$'
-                  ylabel='$log\ T\ [K]$'
-                  zlabel='$\mathsf{log\ \chi^2}$'
+                  xlabel=r'$log\ n\ [cm^{-3}]$'
+                  ylabel=r'$log\ T\ [K]$'
+                  zlabel=r'$\mathsf{log\ \chi^2}$'
 
                   title='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
                   pngoutfile='results/'+obsdata_file[:-4]+"_"+str(p+1)+'_nT.png'
@@ -702,9 +702,9 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc,n
                   z=np.log10(zoom_chi2)
                   this_slice=zoom_T
                   this_bestval=bestT
-                  xlabel='$log\ n\ [cm^{-3}]$'
-                  ylabel='$width\ [dex]$'
-                  zlabel='$\mathsf{log\ \chi^2}$'
+                  xlabel=r'$log\ n\ [cm^{-3}]$'
+                  ylabel=r'$width\ [dex]$'
+                  zlabel=r'$\mathsf{log\ \chi^2}$'
 
                   title='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
                   pngoutfile='results/'+obsdata_file[:-4]+"_"+str(p+1)+'_nW.png'
@@ -718,9 +718,9 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc,n
                   z=np.log10(zoom_chi2)
                   this_slice=zoom_width
                   this_bestval=bestwidth
-                  xlabel='$log\ n\ [cm^{-3}]$'
-                  ylabel='$log\ T\ [K]$'
-                  zlabel='$\mathsf{log\ \chi^2}$'
+                  xlabel=r'$log\ n\ [cm^{-3}]$'
+                  ylabel=r'$log\ T\ [K]$'
+                  zlabel=r'$\mathsf{log\ \chi^2}$'
 
                   title='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
                   pngoutfile='results/'+obsdata_file[:-4]+"_"+str(p+1)+'_nT_fixedW.png'
@@ -734,9 +734,9 @@ def dgt(obsdata_file,powerlaw,userT,userWidth,snr_line,snr_lim,plotting,domcmc,n
                   z=np.log10(zoom_chi2)
                   this_slice=zoom_T
                   this_bestval=bestT
-                  xlabel='$log\ n\ [cm^{-3}]$'
-                  ylabel='$width\ [dex]$'
-                  zlabel='$\mathsf{log\ \chi^2}$'
+                  xlabel=r'$log\ n\ [cm^{-3}]$'
+                  ylabel=r'$width\ [dex]$'
+                  zlabel=r'$\mathsf{log\ \chi^2}$'
 
                   title='Pixel: '+str(p+1)+ ' | SNR('+snr_line+')='+str(SNR)
                   pngoutfile='results/'+obsdata_file[:-4]+"_"+str(p+1)+'_nW_fixedT.png'
